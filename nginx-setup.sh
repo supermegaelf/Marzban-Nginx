@@ -1,8 +1,8 @@
 #!/bin/bash
 
-read -p "Введите основной домен для Marzban Dashboard: " MARZBAN_DOMAIN
-read -p "Введите основной домен для phpMyAdmin: " PMA_DOMAIN
-read -p "Введите основной домен для Sub-Site: " SUBSITE_DOMAIN
+read -p "Enter primary domain for Marzban Dashboard: " MARZBAN_DOMAIN
+read -p "Enter primary domain for phpMyAdmin: " PMA_DOMAIN
+read -p "Enter primary domain for Sub-Site: " SUBSITE_DOMAIN
 
 apt install curl gnupg2 ca-certificates lsb-release ubuntu-keyring -y
 
