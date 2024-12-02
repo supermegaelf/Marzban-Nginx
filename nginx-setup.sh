@@ -1,40 +1,31 @@
 #!/bin/bash
 
-# Запрос доменов у пользователя
 read -p "Введите основной домен для Marzban Dashboard: " MARZBAN_DOMAIN
 read -p "Введите основной домен для phpMyAdmin: " PMA_DOMAIN
 read -p "Введите основной домен для Sub-Site: " SUBSITE_DOMAIN
 
-# Установка необходимых пакетов
 apt install curl gnupg2 ca-certificates lsb-release ubuntu-keyring -y
 
-# Добавление ключа для репозитория nginx
 curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor \
 | sudo tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
 
-# Добавление репозитория nginx
 echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] \
 http://nginx.org/packages/ubuntu $(lsb_release -cs) nginx" \
     | sudo tee /etc/apt/sources.list.d/nginx.list
 
-# Установка приоритета пакетов nginx
 echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 900\n" \
     | sudo tee /etc/apt/preferences.d/99nginx
 
-# Обновление репозиториев и установка nginx
 apt update && apt install nginx -y
 
-# Создание папки для сниппетов конфигурации
 mkdir -p /etc/nginx/snippets
 
-# Создание self-signed сертификата
 cat <<EOF > /etc/nginx/snippets/self-signed.conf
 ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
 ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;
 ssl_dhparam /etc/ssl/certs/dhparam.pem;
 EOF
 
-# Настройка параметров SSL
 cat <<EOF > /etc/nginx/snippets/ssl-params.conf
 ssl_session_timeout 1d;
 ssl_session_cache shared:MozSSL:10m;  # about 40000 sessions
@@ -48,7 +39,6 @@ ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDS
 ssl_prefer_server_ciphers off;
 EOF
 
-# Настройка Cloudflare
 cat <<EOF > /etc/nginx/snippets/cloudflare.conf
 # Cloudflare
 
@@ -81,10 +71,8 @@ set_real_ip_from 2c0f:f248::/32;
 real_ip_header CF-Connecting-IP;
 EOF
 
-# Удаление стандартной конфигурации
 rm -f /etc/nginx/conf.d/default.conf
 
-# Создание конфигурации Marzban Dashboard
 cat <<EOF > /etc/nginx/conf.d/marzban-dash.conf
 server {
     server_name dash.${MARZBAN_DOMAIN};
@@ -116,7 +104,6 @@ server {
 }
 EOF
 
-# Создание конфигурации для субсайта
 cat <<EOF > /etc/nginx/conf.d/sub-site.conf
 server {
     server_name ${SUBSITE_DOMAIN};
@@ -146,7 +133,6 @@ server {
 }
 EOF
 
-# Создание конфигурации phpMyAdmin
 cat <<EOF > /etc/nginx/conf.d/phpmyadmin.conf
 server {
     server_name pma.${PMA_DOMAIN};
@@ -174,14 +160,11 @@ server {
 }
 EOF
 
-# Генерация self-signed сертификатов
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout /etc/ssl/private/nginx-selfsigned.key \
     -out /etc/ssl/certs/nginx-selfsigned.crt \
     -subj "/CN=MyCert"
 
-# Генерация параметров Diffie-Hellman
 openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048
 
-# Проверка конфигурации и перезапуск Nginx
 nginx -t && systemctl restart nginx
